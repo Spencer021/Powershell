@@ -1,0 +1,17 @@
+function Show-Menu
+{
+	Param (
+		[string]$title = 'MENUTITLE'
+	)
+	Write-Host "/=========$Title=========\"
+	Write-Host 
+	"What is the scope of this scan?
+	[1] #OPT1
+	[2] #OPT2
+	[3] #OPT3
+	[4] #OPT4"
+Do {
+	$strconfirm = Read-Host "Select an option 1-4"
+}
+while (1..4 -notcontains $strconfirm)
+}
