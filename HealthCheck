@@ -1,4 +1,4 @@
-
+#Region extra
 [CmdletBinding()] Param (
     [Parameter(Position = 0)]
     [ValidateNotNullOrEmpty()]
@@ -52,7 +52,7 @@ Else
 Write-Host ""
 Write-Host "`tTool    :: Invoke-HeathsHealthCheck" -ForegroundColor Yellow
 Write-Host "`tAuthor  :: Spencer A. Heath (DSO)" -ForegroundColor Yellow
-Write-Host "`tCoAuthor:: Tommy Nguyen (DSO)" -ForegroundColor Yellow
+Write-Host "`tArt By  :: Tommy Nguyen (DSO)" -ForegroundColor Yellow
 Write-Host "`tVersion :: 1.0 Release" -ForegroundColor Yellow
 Write-Host "`tNotes   :: If(!`$LemonDropBang) {Exit}" -ForegroundColor Yellow
 #Get the admin creds of a user
@@ -161,21 +161,22 @@ public static PSCredential getPSCred()
 Add-Type -TypeDefinition $Code -Language CSharp
 Write-Output ([Credentials]::getPSCred())
 }
+#endregion extra
 
-<# 
-ENSURE THEIR PIN IS CORRECT.......OR LOCKOUT 
-#>
-
+<# This only RUNS with PS 7... it walks with anything less#>
+#region PSVERTEST
 $version = $PSVersionTable.PSVersion
 if($version -notlike '7.*.*'){
     Write-Host "Please run this with powershell 7.0.0 or higher. It can be downloaded from '\\Zhtx-bs-013v\cyod\02--Software\PowerShell 7' " -ForegroundColor Red
+    Start-Sleep 10
 }
 else {
         Write-Host "Running with Powershell $version" -ForegroundColor Green
 }
-<# 
-ENSURE THEIR PIN IS CORRECT.......OR LOCKOUT 
-#>
+#endregion PSVERTEST
+
+<# Lets make sure their creds are correct #>
+#region Testcreds
 $credentials = Get-Creds
 $sessiontest = $null
 $ConnectedDC = Get-ADDomainController 
@@ -189,23 +190,20 @@ else {
     Write-Host "Credentials verified" -ForegroundColor Green
 }
 Remove-PSSession $sessiontest
+#endregion Testcreds
+
+<# What is the AOR? #>
+#region MenuSelection
 Write-Host "====Domain Controller Health Check==== 
 What is the scope of this scan?
 [1] Manual DC entry
 [2] All Domain Controllers
 [3] .txt Import list
 [4] Exit" -ForegroundColor Yellow
-<# 
-VALIDATE
-VALIDATE
-VALIDATE 
-#>
 Do {
     $strconfirm = Read-Host "Select an option 1-4"
     }
 while (1..4 -notcontains $strconfirm)
-
-
 #Manual Dc Entry
 if($strconfirm -eq "1"){
 $str1input = Read-Host "Please Enter the name(s) of the domain controller you want to run a scan on? Seperate with comma with no spaces"
@@ -227,7 +225,6 @@ catch {
     {"Please ensure the '.txt' file is in the correct directory with the name 'Import'"}
 }
 }
-
 #Lets just stop... EXIT
 elseif ($strConfirm -eq 4) {
 break
@@ -236,12 +233,13 @@ else {
 Write-Host "ERORR ERROR Please try again?" -ForegroundColor Red
 break
 }
+#endregion MenuSelection
 
+#region THEMEAT
 <# Connecting to each server via PSsession while creating a FOREACH loop to execute commands #>
 $errorcount = 0
 $serversucess = 0
 foreach ($server in $serverslist){
-    
 <# Is this server even online?? #>
 $Connectiontest = Test-Connection -TargetName $server
     if($Connectiontest.status -eq "Success"){
@@ -345,19 +343,4 @@ Write-Host "The Scan has finished on $servercount servers"
 Write-Host "$errorcount servers ran into an issue" -ForegroundColor Red
 Write-Host "$serversucess servers sucessfully ran" -ForegroundColor Green
 Read-Host "Please press enter to exit"
-#Creating a PS session for each DC in foreach loop DONE
-#Get CPU untilization ensure it doesnt exceed 80% DONE
-#get uptime, Check to see if its over 14 days DONE
-#verify if local server certs are expired
-<#
---Get Services ensure starttype is auto and they are running-- DONE
-Active Directory Domain Services
->> ActiveDirectory Web services
->> DFSReplication
->> DNSServer
->> Kerberos Key Distribution Center
->> Netlogon
->> Tumbleweed Desktop Validator
->> Windows Time
->> #> 
-
+#endregion THEMEAT
