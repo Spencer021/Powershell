@@ -1,0 +1,363 @@
+
+[CmdletBinding()] Param (
+    [Parameter(Position = 0)]
+    [ValidateNotNullOrEmpty()]
+    [Switch]
+    $Random
+)
+# Create multiple ASCII art title banners.
+$Spacing = "`t"
+$InvokeObfuscationAscii  = @()
+$InvokeObfuscationAscii += $Spacing + '  _    _            _   _     _        '
+$InvokeObfuscationAscii += $Spacing + ' | |  | |          | | | |   ( )       '
+$InvokeObfuscationAscii += $Spacing + ' | |__| | ___  __ _| |_| |__ |/ ___    '
+$InvokeObfuscationAscii += $Spacing + ' |  __  |/ _ \/ _` | __|  _ \  / __|   '
+$InvokeObfuscationAscii += $Spacing + ' | |  | |  __| (_| | |_| | | | \__ \   '
+$InvokeObfuscationAscii += $Spacing + ' |_|  |_|\___|\__,_|\__|_|_|_| |___/   '
+$InvokeObfuscationAscii += $Spacing + ' | |  | |          | | | | |           '
+$InvokeObfuscationAscii += $Spacing + ' | |__| | ___  __ _| | |_| |__         '
+$InvokeObfuscationAscii += $Spacing + ' |  __  |/ _ \/ _` | | __|  _ \        '
+$InvokeObfuscationAscii += $Spacing + ' | |  | |  __| (_| | | |_| | | |       '
+$InvokeObfuscationAscii += $Spacing + ' |_|__|_|\___|\__,_|_|\__|_| |_|       '
+$InvokeObfuscationAscii += $Spacing + '  / ____| |             | |            '
+$InvokeObfuscationAscii += $Spacing + ' | |    | |__   ___  ___| | _____ _ __ '
+$InvokeObfuscationAscii += $Spacing + ' | |    |  _ \ / _ \/ __| |/ / _ | __| '
+$InvokeObfuscationAscii += $Spacing + ' | |____| | | |  __| (__|   |  __| |   '
+$InvokeObfuscationAscii += $Spacing + '  \_____|_| |_|\___|\___|_|\_\___|_|   '
+# Ascii art to run only during script startup.
+If(!$PSBoundParameters['Random'])
+{
+    Start-Sleep -Milliseconds 100
+    ForEach($Char in [Char[]]'Invoke-HeathsHealthCheck')
+    {
+        Start-Sleep -Milliseconds (Get-Random -Input @(25..200))
+        Write-Host $Char -NoNewline -ForegroundColor Green
+    }
+    Start-Sleep -Milliseconds 900
+    Write-Host ""
+    Start-Sleep -Milliseconds 300
+    Write-Host
+    # Display primary ASCII art title banner.
+    $RandomColor = (Get-Random -Input @('Green','Cyan','Yellow'))
+    ForEach($Line in $InvokeObfuscationAscii)
+    {
+        Write-Host $Line -ForegroundColor $RandomColor
+    }
+}
+Else
+{
+    # ASCII option in Invoke-Obfuscation interactive console.
+}
+# Output tool banner after all ASCII art.
+Write-Host ""
+Write-Host "`tTool    :: Invoke-HeathsHealthCheck" -ForegroundColor Yellow
+Write-Host "`tAuthor  :: Spencer A. Heath (DSO)" -ForegroundColor Yellow
+Write-Host "`tCoAuthor:: Tommy Nguyen (DSO)" -ForegroundColor Yellow
+Write-Host "`tVersion :: 1.0 Release" -ForegroundColor Yellow
+Write-Host "`tNotes   :: If(!`$LemonDropBang) {Exit}" -ForegroundColor Yellow
+#Get the admin creds of a user
+Function Get-Creds {
+[cmdletbinding()]
+Param()
+$Code = @"
+using System;
+using System.Text;
+using System.Security;
+using System.Management.Automation;
+using System.Runtime.InteropServices;
+public class Credentials
+{
+private const int CREDUIWIN_GENERIC = 1;
+private const int CREDUIWIN_CHECKBOX = 2;
+private const int CREDUIWIN_AUTHPACKAGE_ONLY = 16;
+private const int CREDUIWIN_IN_CRED_ONLY = 32;
+private const int CREDUIWIN_ENUMERATE_ADMINS = 256;
+private const int CREDUIWIN_ENUMERATE_CURRENT_USER = 512;
+private const int CREDUIWIN_SECURE_PROMPT = 4096;
+private const int CREDUIWIN_PACK_32_WOW = 268435456;
+[DllImport("credui.dll", CharSet = CharSet.Unicode)]
+private static extern uint CredUIPromptForWindowsCredentials(ref CREDUI_INFO notUsedHere,
+    int authError,
+    ref uint authPackage,
+    IntPtr InAuthBuffer,
+    uint InAuthBufferSize,
+    out IntPtr refOutAuthBuffer,
+    out uint refOutAuthBufferSize,
+    ref bool fSave,
+    int flags);
+[DllImport("credui.dll", CharSet = CharSet.Unicode)]
+private static extern bool CredUnPackAuthenticationBuffer(int dwFlags,
+    IntPtr pAuthBuffer,
+    uint cbAuthBuffer,
+    StringBuilder pszUserName,
+    ref int pcchMaxUserName,
+    StringBuilder pszDomainName,
+    ref int pcchMaxDomainame,
+    StringBuilder pszKey,
+    ref int pcchMaxKey);
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+private struct CREDUI_INFO
+{
+    public int cbSize;
+    public IntPtr hwndParent;
+    public string pszMessageText;
+    public string pszCaptionText;
+    public IntPtr hbmBanner;
+}
+public static PSCredential getPSCred()
+{
+    bool save = false;
+    int authError = 0;
+    uint result;
+    uint authPackage = 0;
+    IntPtr outCredBuffer;
+    uint outCredSize;
+    PSCredential psCreds = null;
+    var credui = new CREDUI_INFO
+                            {
+                                pszCaptionText = "Enter your credentials",
+                                pszMessageText = "83 NOS ♞ Server Health Check, Created By A1C Heath, Spencer and A1C Nguyen, Tommy"
+                            };
+    credui.cbSize = Marshal.SizeOf(credui);
+    while (true) //Show the dialog again and again, until Cancel is clicked or the entered credentials are correct.
+    {
+        //Show the dialog
+        result = CredUIPromptForWindowsCredentials(ref credui,
+        authError,
+        ref authPackage,
+        IntPtr.Zero,
+        0,
+        out outCredBuffer,
+        out outCredSize,
+        ref save,
+        CREDUIWIN_ENUMERATE_CURRENT_USER);
+        if (result != 0) break;
+        var usernameBuf = new StringBuilder(100);
+        var keyBuf = new StringBuilder(100);
+        var domainBuf = new StringBuilder(100);
+        var maxUserName = 100;
+        var maxDomain = 100;
+        var maxKey = 100;
+        if (CredUnPackAuthenticationBuffer(1, outCredBuffer, outCredSize, usernameBuf, ref maxUserName, domainBuf, ref maxDomain, keyBuf, ref maxKey))
+        {
+            Marshal.ZeroFreeCoTaskMemUnicode(outCredBuffer);
+            var key = new SecureString();
+            foreach (char c in keyBuf.ToString())
+            {
+                key.AppendChar(c);
+            }
+            keyBuf.Clear();
+            key.MakeReadOnly();
+            psCreds = new PSCredential(usernameBuf.ToString(), key);
+            GC.Collect();
+            break;
+        }
+        else authError = 1326; //1326 = 'Logon failure: unknown user name or bad password.'
+    }
+    return psCreds;
+}
+}
+"@
+Add-Type -TypeDefinition $Code -Language CSharp
+Write-Output ([Credentials]::getPSCred())
+}
+
+<# 
+ENSURE THEIR PIN IS CORRECT.......OR LOCKOUT 
+#>
+
+$version = $PSVersionTable.PSVersion
+if($version -notlike '7.*.*'){
+    Write-Host "Please run this with powershell 7.0.0 or higher. It can be downloaded from '\\Zhtx-bs-013v\cyod\02--Software\PowerShell 7' " -ForegroundColor Red
+}
+else {
+        Write-Host "Running with Powershell $version" -ForegroundColor Green
+}
+<# 
+ENSURE THEIR PIN IS CORRECT.......OR LOCKOUT 
+#>
+$credentials = Get-Creds
+$sessiontest = $null
+$ConnectedDC = Get-ADDomainController 
+$session = New-PSSession -ComputerName $ConnectedDC -Credential $credentials *>$null
+$sessiontest = Get-PSSession
+if  ($sessiontest -eq $null){
+    Write-Host "Your credentials could not be verified, Ensure you are inputting the correct PIN" -ForegroundColor Red
+    break
+}
+else {
+    Write-Host "Credentials verified" -ForegroundColor Green
+}
+Remove-PSSession $sessiontest
+Write-Host "====Domain Controller Health Check==== 
+What is the scope of this scan?
+[1] Manual DC entry
+[2] All Domain Controllers
+[3] .txt Import list
+[4] Exit" -ForegroundColor Yellow
+<# 
+VALIDATE
+VALIDATE
+VALIDATE 
+#>
+Do {
+    $strconfirm = Read-Host "Select an option 1-4"
+    }
+while (1..4 -notcontains $strconfirm)
+
+
+#Manual Dc Entry
+if($strconfirm -eq "1"){
+$str1input = Read-Host "Please Enter the name(s) of the domain controller you want to run a scan on? Seperate with comma with no spaces"
+$serverslist = [array]$str1input.Split(',')
+}
+
+#All DC check
+elseif ($strConfirm -eq "2") {
+$DCgather = Get-ADDomainController -Filter *
+$serverslist = $DCgather.name
+}
+
+#TXT import
+elseif ($strConfirm -eq "3") {
+try {
+   $serverslist = Get-Content .\import.txt
+}
+catch {
+    {"Please ensure the '.txt' file is in the correct directory with the name 'Import'"}
+}
+}
+
+#Lets just stop... EXIT
+elseif ($strConfirm -eq 4) {
+break
+}
+else {
+Write-Host "ERORR ERROR Please try again?" -ForegroundColor Red
+break
+}
+
+<# Connecting to each server via PSsession while creating a FOREACH loop to execute commands #>
+$errorcount = 0
+$serversucess = 0
+foreach ($server in $serverslist){
+    
+<# Is this server even online?? #>
+$Connectiontest = Test-Connection -TargetName $server
+    if($Connectiontest.status -eq "Success"){
+        Write-Host "Connection to $server established" -ForegroundColor Green
+    }
+    else{
+        Write-Host "Could not establish a connection to $server, Please ensure your credentials are correct and the server is online" -ForegroundColor Red -BackgroundColor Black
+        $Errorcount++
+        Write-Host "Please press enter to continue..." -ForegroundColor Yellow
+        Read-Host""
+        continue
+
+    }
+    
+<# LETS CONNECT #>
+    $session = New-PSSession -ComputerName $server -Credential $credentials 
+
+<# We need to know what server we are running this on....right? #>
+    Write-host "================== Health Check Started on $server ==================" -ForegroundColor Yellow -BackgroundColor Black
+
+    <# Did you try restarting it? Getting uptime...... #>
+Write-Host "Checking server uptime..." -ForegroundColor Cyan
+Invoke-Command -ScriptBlock { 
+    $bootuptime = (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime
+    $CurrentDate = Get-Date
+    $uptime = $CurrentDate - $bootuptime
+    if ($uptime.days -ge "14"){
+        Write-Host "The uptime for the server is $($uptime.days) Days, $($uptime.hours) Hours. This server should be restarted!" -ForegroundColor Red
+    }
+    else {
+        Write-Host "The uptime for the server is $($uptime.days) Days, $($uptime.hours) Hours. This server does not require a restart!" -ForegroundColor Green
+    }
+} -Session $session
+
+<# Script service?? Lets see if the services are running... #>
+Invoke-Command -ScriptBlock { 
+    Write-Host "Starting services check...." -ForegroundColor Cyan
+        Start-Sleep 2
+    $svcstr = "ADWS", "DFSR", "DNS", "kdc", "Netlogon", "w32Time", "Tumbleweed Desktop Validator"
+    foreach($serviceName in $svcstr){
+        $svccheck = Get-Service -name "$serviceName"
+        $svcnameout = $svccheck.DisplayName
+
+if ($svccheck.Status -like "Stopped"){
+    $svcerror = "1"
+}
+else {
+    $svcerror = "0"
+}
+if ($svccheck.StartType -like "Manual"){
+    $svcerror = "2"
+}
+else {
+    $svcerror = "0"
+}
+if($svcerror -eq "1"){
+    Write-Host "The service $svcnameout was detected as 'Stopped', This is a core service please manually investigate." -ForegroundColor Red
+}
+elseif($svcerror -eq "2"){
+    Write-Host "The service $svcnameout was detected as 'Manual' Start Type, This is a core service please manually investigate." -ForegroundColor Red
+}
+else {
+    Write-Host "Testing for service $svcnameout is complete!"
+}
+}
+} -Session $session
+Invoke-Command -ScriptBlock {
+    Write-Host "Starting CPU Load test..." -ForegroundColor Cyan
+    Write-host "Running CPU test pass one" -ForegroundColor Magenta
+    $cputest1 = Get-CimInstance win32_processor | Measure-Object -Property LoadPercentage -Average
+    Write-host "Running CPU test pass two" -ForegroundColor Magenta
+    Start-Sleep "3"
+    $cputest2 = Get-CimInstance win32_processor | Measure-Object -Property LoadPercentage -Average
+    Write-host "Running CPU test pass three" -ForegroundColor Magenta
+    Start-Sleep "3"
+    $cputest3 = Get-CimInstance win32_processor | Measure-Object -Property LoadPercentage -Average
+    Write-host "Running CPU test pass four" -ForegroundColor Magenta
+    Start-Sleep "3"
+    $cputest4 = Get-CimInstance win32_processor | Measure-Object -Property LoadPercentage -Average
+    Write-host "Running CPU test pass five" -ForegroundColor Magenta
+    Start-Sleep "3"
+    $cputest5 = Get-CimInstance win32_processor | Measure-Object -Property LoadPercentage -Average
+    $cpuavrgadd = $cputest1.Average+$cputest2.Average+$cputest3.Average+$cputest4.Average+$cputest5.Average
+    $cpuavrgdiv = $cpuavrgadd / 5
+    If($cpuavrgdiv -ge "70"){
+        Write-Host "The CPU load is $cpuavrgdiv% please manually investigate this server" -ForegroundColor Red
+    }
+    else {
+        Write-Host "The CPU load is $cpuavrgdiv%, No action required!" -ForegroundColor Green
+    }
+} -Session $session
+Invoke-Command -ScriptBlock {
+    Write-Host "Checking available harddrive space, Ensure the C:\ drive has more then 10 GB free..."
+    $harddrive = Get-CimInstance -ClassName Win32_LogicalDisk | Select-Object -Property DeviceID,@{'Name' = 'FreeSpace'; Expression= { [int]($_.FreeSpace / 1GB) }}
+    $harddrive
+} -Session $session
+Remove-PSSession $session
+$serversucess++
+} 
+Write-Host "The Scan has finished on $servercount servers"
+Write-Host "$errorcount servers ran into an issue" -ForegroundColor Red
+Write-Host "$serversucess servers sucessfully ran" -ForegroundColor Green
+Read-Host "Please press enter to exit"
+#Creating a PS session for each DC in foreach loop DONE
+#Get CPU untilization ensure it doesnt exceed 80% DONE
+#get uptime, Check to see if its over 14 days DONE
+#verify if local server certs are expired
+<#
+--Get Services ensure starttype is auto and they are running-- DONE
+Active Directory Domain Services
+>> ActiveDirectory Web services
+>> DFSReplication
+>> DNSServer
+>> Kerberos Key Distribution Center
+>> Netlogon
+>> Tumbleweed Desktop Validator
+>> Windows Time
+>> #> 
+
