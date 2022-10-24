@@ -1,0 +1,22 @@
+if ($_.Name -like "*--*"){
+    $scantype = 1
+}
+elseif ($_name -like "*--*" -or $_name -like "*--*" -or $_name -like "*--*" ) {
+    $scantype = 2
+}
+else {
+        Write-Host "The server type could not be defined"
+        $errorcount++
+        Continue
+}
+if($scantype -eq "1"){
+
+    <# INPUT DC SCAN SCRIPT HERE #>
+
+
+}
+elseif ($scantype -eq "2") {
+   
+    <# Input DHCP scan script here #>
+
+}
