@@ -239,6 +239,7 @@ break
 <# Connecting to each server via PSsession while creating a FOREACH loop to execute commands #>
 $errorcount = 0
 $serversucess = 0
+$servercount = 0
 foreach ($server in $serverslist){
 <# Is this server even online?? #>
 $Connectiontest = Test-Connection -TargetName $server
@@ -251,12 +252,15 @@ $Connectiontest = Test-Connection -TargetName $server
         Write-Host "Please press enter to continue..." -ForegroundColor Yellow
         Read-Host""
         continue
-
     }
-    
+    if ($server -like "*-HC-*" -or $server -like "*-HCS-*" -or $server -like "*-HCF-*"){
+        Write-host "The script currently only supports domain controllers, skipping $server" -ForgroundColor Yellow
+        $Errorcount++
+        continue
+    }
+    $servercount++
 <# LETS CONNECT #>
     $session = New-PSSession -ComputerName $server -Credential $credentials 
-
 <# We need to know what server we are running this on....right? #>
     Write-host "================== Health Check Started on $server ==================" -ForegroundColor Yellow -BackgroundColor Black
 
