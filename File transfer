@@ -1,0 +1,12 @@
+do {
+    $filepath = Read-Host "PLease Enter the file path of the file you would like to transfer"
+  $test = Test-Path $filepath
+}
+until (
+        $test -eq $true
+    ) 
+$server = Read-Host "Please Enter the server/computer you want to transfer the file to"
+$session = New-PSSession -ComputerName $server -Credential $creds 
+Copy-Item -path $filepath -ToSession $session -Destination "C:\Users\Public\Documents" -Recurse
+Write-Host "The file was saved at C:\Users\Public\Documents"
+Remove-PSSession $session
