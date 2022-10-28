@@ -1,3 +1,99 @@
+#region getrepl
+function Get-ReplStatus #Function created by SrA Robert Griffin 
+{
+    param(
+        [Parameter(Mandatory = $false)]
+        [switch]$showMe = $false,
+
+        [Parameter(Mandatory = $true)]
+        [int]$serverOpt,
+
+        [Parameter(Mandatory = $false)]
+        [string]$serverName,
+
+        [Parameter(Mandatory = $false)]
+        [array]$serverNames
+    )
+
+    begin
+    {
+        [array]$output = @()
+        if ($serverOpt -eq 5) # testing the status for ALL DCs
+        {
+            [array]$servers = (Get-ADDomainController -Filter *).Hostname
+        }
+        elseif ($serverOpt -eq 6) # testing the status for only specific DC that is passed in as the $serverName argument
+        {
+            [array]$servers = "$($serverName)"
+        }
+        elseif ($serverOpt -7) # testing the status for the array of DCs passed in as the $serverNames argument
+        {
+            [array]$servers = $serverNames
+        }
+    }
+
+    process
+    {
+        foreach ($server in $servers)
+        {
+            if ($showMe)
+            {
+                Write-Host "Gathering Metadata for $($server.Split('.')[0])..." -NoNewline
+            }
+
+            [array]$replicationInfo = Get-ADReplicationPartnerMetadata $server | Select-Object LastReplicationAttempt, LastReplicationSuccess, @{n="Partner";e={$_.Partner.split(',')[1].split('=')[1]}}
+            
+            for ($i = 0; $i -lt $replicationInfo.LastReplicationAttempt.Count; $i++)
+            {
+                if ($replicationInfo.LastReplicationAttempt[$i].ToUniversalTime() -eq $replicationInfo.LastReplicationSuccess[$i].ToUniversalTime())
+                {
+                    $replResult = [PSCustomObject]@{
+                        Server = $server
+                        Result = 'SUCCESS'
+                        "Last Attempt" = $replicationInfo.LastReplicationAttempt[$i]
+                        "Last Success" = $replicationInfo.LastReplicationSuccess[$i]
+                        Partner = $replicationInfo.Partner[$i]
+                    }
+                    
+                    $output += $replResult
+                    $success = $true
+                }
+                else
+                {
+                    $replResult = [PSCustomObject]@{
+                        Server = $server
+                        Result = 'FAILURE'
+                        "Last Attempt" = $replicationInfo.LastReplicationAttempt[$i]
+                        "Last Success" = $replicationInfo.LastReplicationSuccess[$i]
+                        Partner = $replicationInfo.Partner[$i]
+                    }
+        
+                    $output += $replResult
+                    $success = $false
+                }
+            }
+        
+            if ($showMe)
+            {
+                if ($success)
+                {
+                    Write-Host "$($replResult.Result)!" -ForegroundColor Green
+                }
+                else
+                {
+                    Write-Host "$($replResult.Result)!" -ForegroundColor Red -NoNewline
+                    Write-Host "`t$($replResult)"
+                }
+            }
+        }    
+    }
+
+    end
+    {
+        return $output
+    }
+}
+#endregion getrepl
 #Region extra
 [CmdletBinding()] Param (
     [Parameter(Position = 0)]
@@ -51,8 +147,9 @@ Else
 # Output tool banner after all ASCII art.
 Write-Host ""
 Write-Host "`tTool    :: Invoke-HeathsHealthCheck" -ForegroundColor Yellow
-Write-Host "`tAuthor  :: Spencer A. Heath (DSO)" -ForegroundColor Yellow
-Write-Host "`tArt By  :: Tommy Nguyen (DSO)" -ForegroundColor Yellow
+Write-Host "`tCreator  :: A1C Spencer A. Heath (DSO)" -ForegroundColor Yellow
+Write-Host "`tGuidence from  :: SrA Robert S. Griffin (DSO)" -ForegroundColor Yellow
+Write-Host "`tArt By   :: A1C Tommy Nguyen (DSO)" -ForegroundColor Yellow
 Write-Host "`tVersion :: 1.0 Release" -ForegroundColor Yellow
 Write-Host "`tNotes   :: If(!`$LemonDropBang) {Exit}" -ForegroundColor Yellow
 #Get the admin creds of a user
@@ -199,14 +296,16 @@ What is the scope of this scan?
 [1] Manual DC entry
 [2] All Domain Controllers
 [3] .txt Import list
-[4] Exit" -ForegroundColor Yellow
+[4] Test only Replication on all DCs in a .txt
+[5] Test only Replication on all DCs
+[6] Exit" -ForegroundColor Yellow
 Do {
-    $strconfirm = Read-Host "Select an option 1-4"
+    $strconfirm = Read-Host "Select an option 1-7"
     }
-while (1..4 -notcontains $strconfirm)
+while (1..7 -notcontains $strconfirm)
 #Manual Dc Entry
 if($strconfirm -eq "1"){
-$str1input = Read-Host "Please Enter the name(s) of the domain controller you want to run a scan on? Seperate with comma with no spaces"
+$str1input = Read-Host "Please Enter the name(s) of the server you want to run a scan on. Seperate with a comma with no spaces"
 $serverslist = [array]$str1input.Split(',')
 }
 
@@ -225,10 +324,27 @@ catch {
     {"Please ensure the '.txt' file is in the correct directory with the name 'Import'"}
 }
 }
-#Lets just stop... EXIT
-elseif ($strConfirm -eq 4) {
-break
-}
+elseif($strconfirm -eq "4"){
+    try {
+        $serverslist = Get-Content .\import.txt
+    }
+    catch {
+        {"Please ensure the '.txt' file is in the correct directory with the name 'Import'"}
+    }
+    foreach ($server in $serverslist){
+    Get-ReplStatus -serverOpt 6 -ComputerName $server -showMe
+    }
+elseif ($strConfirm -eq "5") {
+        $Opt5input = Read-Host "Please enter the server(s) you would like to run a replication test on. Seperated by a comma with no spaces"
+        $serverslist = [array]$Opt5input.Split(',')
+        foreach($server in $serverslist){
+        Get-ReplStatus -serverOpt 6 -serverName $server -showMe
+        }
+    }
+    #Lets just stop... EXIT
+elseif ($strConfirm -eq "6") {
+    break
+    }
 else {
 Write-Host "ERORR ERROR Please try again?" -ForegroundColor Red
 break
