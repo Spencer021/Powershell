@@ -1,0 +1,92 @@
+#region Vars
+Clear-Host
+$date = Get-Date -Format dd-mm-yyyy
+$runtime = [System.Diagnostics.Stopwatch]::startnew()
+$user = $env:USERNAME
+$path = "C:\Users\$user\Desktop\CKL STIG Metrics $($date).csv"
+$checklistcount = 0
+$uniquecat1count = 0
+$uniquecat2count = 0
+$uniquecat3count = 0
+$uniquetotalcount = 0
+$unique = $null
+$cat3out = $null
+$cat3count = 0
+$cat2out = $null
+$cat2count = 0
+$cat1out = $null
+$cat1count = 0
+$opens = 0
+$NotAFinding = 0
+$NotReviewed = 0
+$NotApplicable = 0
+$testpath = $false
+$cklfolder = $null
+#endregion vars
+while ($testpath -ne $true){
+    $cklfolder = Read-Host "Please enter the file path of the .CKL files"
+    $testpath = Test-path $cklfolder
+}
+$CKLFIles = Get-ChildItem -Path $cklfolder
+Write-Host "Reviewing .CKL files......" -ForegroundColor Cyan
+foreach ($CKL in $CKLFIles){
+$checklistcount++
+[XML]$cklcontent = Get-Content -Path $CKL
+$cklcontentxmlpath = [array]$cklcontent.CHECKLIST.STIGS.iSTIG.VULN
+foreach ($VULN in $cklcontentxmlpath){
+$Vulninfo = [PSCustomObject]@{
+    Status = $VULN.STATUS
+    VulnNum = $VULN.STIG_DATA[0].ATTRIBUTE_DATA
+    Catlvl = $VULN.STIG_DATA[1].ATTRIBUTE_DATA
+}
+if ($Vulninfo.Catlvl -eq "low" -and $Vulninfo.Status -eq "Open"){
+    $cat3count++
+    [array]$cat3out += $Vulninfo.VulnNum
+}
+elseif ($Vulninfo.Catlvl -eq "medium" -and $Vulninfo.Status -eq "Open"){
+    $cat2count++
+    [array]$cat2out += $Vulninfo.VulnNum
+}
+elseif ($Vulninfo.Catlvl -eq "high" -and $Vulninfo.Status -eq "Open"){
+    $cat1count++
+    [array]$cat1out += $Vulninfo.VulnNum
+}
+If ($Vulninfo.STATUS -eq "Open"){
+    $opens++
+    [array]$unique += $Vulninfo.VulnNum
+}
+elseif ($Vulninfo.Status -eq "NotAFinding") {
+    $NotAFinding++
+}
+elseif ($Vulninfo.Status -eq "Not_Reviewed") {
+    $NotReviewed++
+}
+elseif ($Vulninfo.Status -eq "Not_Applicable") {
+    $NotApplicable++
+}
+}
+}
+$runtime.stop()
+$uniquecat1count = ($cat1out | Sort-Object | Get-Unique).count
+$uniquecat2count = ($cat2out | Sort-Object | Get-Unique).count
+$uniquecat3count = ($cat3out | Sort-Object | Get-Unique).count
+$uniquetotalcount = ($unique | Sort-Object | Get-Unique).count
+$checkcount = $opens + $NotAFinding + $NotApplicable + $NotReviewed
+$cklout = [PSCustomObject]@{
+    'Ran on' = $date
+    'Cat 1 Total open' = $cat1count
+    'Cat 2 Total open' = $cat2count
+    'Cat 3 Total open' = $cat3count
+    'Unique Cat 1 open' = $cat1count
+    'Unique Cat 2 open' = $cat2count
+    'Unique Cat 3 open' = $cat3count
+    'Total Open' = $opens
+    'Not A finding' = $NotAFinding
+    'Not Applicable' = $NotApplicable
+    'Not Reviewed' = $NotReviewed
+    'Total Unique Opens' = $uniquetotalcount
+}
+$cklout
+Write-Host "Finished processing $checkcount total check(s) in $checklistcount checklist(s) in $($runtime.Elapsed.Minutes) minute(s), $($runtime.Elapsed.Seconds) second(s)" -ForegroundColor Green
+Write-Host "Results saved at $path" -ForegroundColor Blue
+$cklout | Export-Csv $path
