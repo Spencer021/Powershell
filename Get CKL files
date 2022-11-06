@@ -1,0 +1,15 @@
+Clear-Host
+$date = Get-Date -Format dd-MM-yyyy
+while ($testpath -ne $true){
+    $Filepath = Read-Host "Please enter the file path of the .CKL files"
+    $testpath = Test-path $Filepath
+}
+Write-Host "The file path has been found" -ForegroundColor Green
+$cklpath = New-Item -Path 'C:\Users\Public\Documents' -ItemType Directory -Name "Ckl Files $date" -Force
+$getitems = Get-ChildItem -Path $Filepath
+foreach ($file in $getitems){
+    $CompDIR = Get-childItem "$file\Checklist" -File "*.CKL"
+    Copy-Item -Path $CompDIR -Destination $cklpath
+}
+Write-Host "Files have been copied sucessfully" -ForegroundColor Green
+Write-Host "The output was saved at $cklpath" -ForegroundColor Green
