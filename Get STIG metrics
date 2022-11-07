@@ -8,92 +8,97 @@ Clear-Host
 $date = Get-Date -Format dd-MM-yyyy
 $user = $env:USERNAME
 $path = "C:\Users\$user\Desktop\CKL STIG Metrics $($date).csv"
-$checklistcount = 0
-$uniquecat1count = 0
-$uniquecat2count = 0
-$uniquecat3count = 0
-$uniquetotalcount = 0
-[array]$displayAllunique = $null
-[array]$cat3array = $null
-$cat3count = 0
-[array]$cat2array = $null
-$cat2count = 0
-[array]$cat1array = $null
-$cat1count = 0
-$opens = 0
-$NotAFinding = 0
-$NotReviewed = 0
-$NotApplicable = 0
-$testpath = $false
-$cklfolder = $null
+[int]$checklistcount = 0
+$Opensarray = New-Object -TypeName "System.Collections.ArrayList"
+$Opensarray = [System.Collections.ArrayList]@()
+$cat3array = New-Object -TypeName "System.Collections.ArrayList"
+$cat3array = [System.Collections.ArrayList]@()
+$cat2array = New-Object -TypeName "System.Collections.ArrayList"
+$cat2array = [System.Collections.ArrayList]@()
+$cat1array = New-Object -TypeName "System.Collections.ArrayList"
+$cat1array = [System.Collections.ArrayList]@()
+$cat1count = New-Object -TypeName "System.Collections.ArrayList"
+$cat1count = [System.Collections.ArrayList]@()
+$cat2count = New-Object -TypeName "System.Collections.ArrayList"
+$cat2count = [System.Collections.ArrayList]@()
+$cat3count = New-Object -TypeName "System.Collections.ArrayList"
+$cat3count = [System.Collections.ArrayList]@()
+$openscount = New-Object -TypeName "System.Collections.ArrayList"
+$openscount = [System.Collections.ArrayList]@()
+$NotAFinding = New-Object -TypeName "System.Collections.ArrayList"
+$NotAFinding = [System.Collections.ArrayList]@()
+$NotReviewed = New-Object -TypeName "System.Collections.ArrayList"
+$NotReviewed = [System.Collections.ArrayList]@()
+$NotApplicable = New-Object -TypeName "System.Collections.ArrayList"
+$NotApplicable = [System.Collections.ArrayList]@()
+[int]$testpath = $false
+[String]$cklfolder = $null
 #endregion vars
-while ($testpath -ne $true){
+while ($testpath -ne $true) {
     $cklfolder = Read-Host "Please enter the file path of the .CKL files"
     $testpath = Test-path $cklfolder
 }
 $runtime = [System.Diagnostics.Stopwatch]::startnew()
 $CKLFIles = Get-ChildItem -Path $cklfolder
 Write-Host "Reviewing .CKL files......" -ForegroundColor Cyan
-foreach ($CKL in $CKLFIles){
-$checklistcount++
-[XML]$cklcontent = Get-Content -Path $CKL
-$cklcontentxmlpath = [array]$cklcontent.CHECKLIST.STIGS.iSTIG.VULN
-foreach ($VULN in $cklcontentxmlpath){
-$Vulninfo = [PSCustomObject]@{
-    Status = $VULN.STATUS
-    VulnNum = $VULN.STIG_DATA[0].ATTRIBUTE_DATA
-    Catlvl = $VULN.STIG_DATA[1].ATTRIBUTE_DATA
-}
-if ($Vulninfo.Catlvl -eq "low" -and $Vulninfo.Status -eq "Open"){
-    $cat3count++
-    [array]$cat3array += $Vulninfo.VulnNum
-}
-elseif ($Vulninfo.Catlvl -eq "medium" -and $Vulninfo.Status -eq "Open"){
-    $cat2count++
-    [array]$cat2array += $Vulninfo.VulnNum
-}
-elseif ($Vulninfo.Catlvl -eq "high" -and $Vulninfo.Status -eq "Open"){
-    $cat1count++
-    [array]$cat3array += $Vulninfo.VulnNum
-}
-If ($Vulninfo.STATUS -eq "Open"){
-    $opens++
-    [array]$Opensarray += $Vulninfo.VulnNum
-}
-elseif ($Vulninfo.Status -eq "NotAFinding") {
-    $NotAFinding++
-}
-elseif ($Vulninfo.Status -eq "Not_Reviewed") {
-    $NotReviewed++
-}
-elseif ($Vulninfo.Status -eq "Not_Applicable") {
-    $NotApplicable++
-}
-}
+foreach ($CKL in $CKLFIles) {
+    $checklistcount++
+    <# [XML]$cklcontent = Get-Content -Path $CKL #>
+    $tmpckl = New-Object -TypeName System.Xml.XmlDocument
+    $tmpckl = [xml]''
+    $tmpckl.Load($CKL)
+    foreach ($VULN in $tmpckl.CHECKLIST.STIGS.iSTIG.VULN) {
+        $Vulninfo = [PSCustomObject]@{
+            Status  = $VULN.STATUS #Finding Status
+            VulnNum = $VULN.STIG_DATA[0].ATTRIBUTE_DATA #Vuln ID
+            Catlvl  = $VULN.STIG_DATA[1].ATTRIBUTE_DATA #Catlvl
+        }
+        if ($Vulninfo.Catlvl -eq "low" -and $Vulninfo.Status -eq "Open") {
+            $cat3count.add(1) *>$null
+            $cat3array.add($Vulninfo.VulnNum) *>$null
+        }
+        elseif ($Vulninfo.Catlvl -eq "medium" -and $Vulninfo.Status -eq "Open") {
+            $cat2count.add(1) *>$null
+            $cat2array.add($Vulninfo.VulnNum) *>$null
+        }
+        elseif ($Vulninfo.Catlvl -eq "high" -and $Vulninfo.Status -eq "Open") {
+            $cat1count.Add(1) *>$null
+            $cat1array.add($Vulninfo.VulnNum) *>$null
+        }
+        If ($Vulninfo.STATUS -eq "Open") {
+            $openscount.add(1) *>$null
+            $Opensarray.add($Vulninfo.VulnNum) *>$null
+        }
+        elseif ($Vulninfo.Status -eq "NotAFinding") {
+            $NotAFinding.add(1) &>$null
+        }
+        elseif ($Vulninfo.Status -eq "Not_Reviewed") {
+            $NotReviewed.add(1) &>$null
+        }
+        elseif ($Vulninfo.Status -eq "Not_Applicable") {
+            $NotApplicable.add(1) &>$null
+        }
+    }
 }
 $runtime.stop()
-$displaycat1uniqueopen = $cat1array | Sort-Object | Get-Unique
-$displaycat2uniqueopen = $cat2array | Sort-Object | Get-Unique
-$displaycat3uniqueopen = $cat3array | Sort-Object | Get-Unique
-$displayAlluniqueopen = $opensarray | Sort-Object | Get-Unique
-$uniquecat1count = ($displaycat1uniqueopen).Count
-$uniquecat2count = ($displaycat2uniqueopen).Count
-$uniquecat3count = ($displaycat3uniqueopen).Count
-$uniquetotalcount = ($displayAlluniqueopen).Count
-$checkcount = $opens + $NotAFinding + $NotApplicable + $NotReviewed
+$cat1array = $cat1array | Sort-Object | Sort-Object -Unique
+$cat2array = $cat2array | Sort-Object | Sort-Object -Unique
+$cat3array = $cat3array | Sort-Object | Sort-Object -Unique
+$opensarray = $opensarray | Sort-Object | Sort-Object -Unique
+$checkcount = $openscount.Count + $NotAFinding.Count + $NotApplicable.Count + $NotReviewed.Count
 $cklout = [PSCustomObject]@{
-    'Ran on' = $date
-    'Cat 1 Total open' = $cat1count
-    'Cat 2 Total open' = $cat2count
-    'Cat 3 Total open' = $cat3count
-    'Unique Cat 1 open' = $cat1count
-    'Unique Cat 2 open' = $cat2count
-    'Unique Cat 3 open' = $cat3count
-    'Total Open' = $opens
-    'Total Not A finding' = $NotAFinding
-    'Total Not Applicable' = $NotApplicable
-    'Total Not Reviewed' = $NotReviewed
-    'Total Unique Opens' = $uniquetotalcount
+    'Ran on'               = $date
+    'Cat 1 Total open'     = $cat1count.Count
+    'Cat 2 Total open'     = $cat2count.Count
+    'Cat 3 Total open'     = $cat3count.Count
+    'Unique Cat 1 open'    = $cat1array.Count
+    'Unique Cat 2 open'    = $cat2array.Count
+    'Unique Cat 3 open'    = $cat3array.Count
+    'Total Open'           = $openscount.Count
+    'Total Not A finding'  = $NotAFinding.count
+    'Total Not Applicable' = $NotApplicable.Count
+    'Total Not Reviewed'   = $NotReviewed.Count
+    'Total Unique Opens'   = $uniquetotalcount
 }
 $cklout
 Write-Host "Finished processing $checkcount total check(s) in $checklistcount checklist(s) in $($runtime.Elapsed.Minutes) minute(s), $($runtime.Elapsed.Seconds) second(s), $($runtime.Elapsed.Milliseconds) Millisecond(s) " -ForegroundColor Green
