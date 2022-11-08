@@ -8,29 +8,18 @@ Clear-Host
 $date = Get-Date -Format dd-MM-yyyy
 $user = $env:USERNAME
 $path = "C:\Users\$user\Desktop\CKL STIG Metrics $($date).csv"
-[int]$checklistcount = 0
 $Opensarray = New-Object -TypeName "System.Collections.ArrayList"
-$Opensarray = [System.Collections.ArrayList]@()
 $cat3array = New-Object -TypeName "System.Collections.ArrayList"
-$cat3array = [System.Collections.ArrayList]@()
 $cat2array = New-Object -TypeName "System.Collections.ArrayList"
-$cat2array = [System.Collections.ArrayList]@()
 $cat1array = New-Object -TypeName "System.Collections.ArrayList"
-$cat1array = [System.Collections.ArrayList]@()
 $cat1count = New-Object -TypeName "System.Collections.ArrayList"
-$cat1count = [System.Collections.ArrayList]@()
 $cat2count = New-Object -TypeName "System.Collections.ArrayList"
-$cat2count = [System.Collections.ArrayList]@()
 $cat3count = New-Object -TypeName "System.Collections.ArrayList"
-$cat3count = [System.Collections.ArrayList]@()
 $openscount = New-Object -TypeName "System.Collections.ArrayList"
-$openscount = [System.Collections.ArrayList]@()
 $NotAFinding = New-Object -TypeName "System.Collections.ArrayList"
-$NotAFinding = [System.Collections.ArrayList]@()
 $NotReviewed = New-Object -TypeName "System.Collections.ArrayList"
-$NotReviewed = [System.Collections.ArrayList]@()
 $NotApplicable = New-Object -TypeName "System.Collections.ArrayList"
-$NotApplicable = [System.Collections.ArrayList]@()
+[int]$checklistcount = 0
 [int]$testpath = $false
 [String]$cklfolder = $null
 #endregion vars
@@ -70,13 +59,13 @@ foreach ($CKL in $CKLFIles) {
             $Opensarray.add($Vulninfo.VulnNum) *>$null
         }
         elseif ($Vulninfo.Status -eq "NotAFinding") {
-            $NotAFinding.add(1) &>$null
+            $NotAFinding.add(1) *>$null
         }
         elseif ($Vulninfo.Status -eq "Not_Reviewed") {
-            $NotReviewed.add(1) &>$null
+            $NotReviewed.add(1) *>$null
         }
         elseif ($Vulninfo.Status -eq "Not_Applicable") {
-            $NotApplicable.add(1) &>$null
+            $NotApplicable.add(1) *>$null
         }
     }
 }
