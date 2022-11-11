@@ -1,0 +1,31 @@
+function Get-ServerInfo {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$servername,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$servertype,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$sitecode
+    )
+    if ($servername -like '*-*-*') {
+        $hostnameSplit = $servername.Split('-')
+        if ($sitecode) {
+            return [string]$hostnameSplit[0]
+        }
+        if ($servertype) {
+            if ($hostnameSplit[1] -like "DC") {
+                $servertypeout = "Domain Controller"
+            }
+            elseif ($hostnameSplit[1] -like "HC" -or $hostnameSplit[1] -like "HCS" -or $hostnameSplit[1] -like "HCF") {
+                $servertypeout = "DHCP server"
+            }
+            return [string]$servertypeout
+        }
+    }
+    else {
+        return "Please input a server name with the correct format (Ex: test-test-test)"
+    }
+}
+
