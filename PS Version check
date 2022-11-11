@@ -1,6 +1,6 @@
 $version = $PSVersionTable.PSVersion
 if($version -notlike '*.*.*'){
-Write-Host "Please run this with powershell 7.0.0 or higher" -ForegroundColor Red
+Write-Host "Please run this with powershell *.0.0 or higher" -ForegroundColor Red
 }
 else {
     Write-Host "Running with Powershell $version" -ForegroundColor Green
