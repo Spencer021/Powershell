@@ -1,0 +1,27 @@
+$EndpathHC = "$HOME.ADC"
+$EndpathDC = "$HOME.ADD"
+$testtaniuminstallpath = $false
+do {
+    $TaniumInstall = Read-Host "Please Enter the file path to the 'Tanium Install.ZIP' Folder"
+    $testtaniuminstallpath = Test-Path $TaniumInstall
+}
+until (
+    $testtaniuminstallpath -eq $true
+)
+$testserverlistpath = $false
+do {
+    $serverlistpath = Read-Host "Please Enter the file path to the server list (.CSV)"
+    $testserverlistpath = Test-Path $serverlistpath
+}
+until (
+    $testserverlistpath -eq $true
+)
+$serverlist = Get-Content -Path $serverlistpath
+foreach ($server in $serverlist){
+    if ($server -like "*-DC-*") {
+        Copy-Item $TaniumInstall -Destination "$EndpathDC\Desktop"
+    }
+    elseif ($server -like "*-HC-*" -or $server -like "*-HCS-*" -or $server -like "*-HCF-*") {
+        Copy-Item $TaniumInstall -Destination "$EndpathDC\Desktop"
+    }
+}
