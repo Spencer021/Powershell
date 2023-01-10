@@ -1,0 +1,103 @@
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+## Functions
+function OpenFile {
+    $GetCSV = New-Object System.Windows.Forms.OpenFileDialog
+    $GetCSV.Filter = "CSV files (*.csv)|*.csv"
+    if ($GetCSV.ShowDialog() -eq "OK") {
+        $textbox_OpenFile.Text = $GetCSV.FileName
+    }
+}
+
+function Import-ServerCSV {
+    if ($textbox_OpenFile.Text -ne "") {
+        $serverlist = Get-Content -Path $($textbox_OpenFile.Text)
+        return $serverlist 
+    }
+    else {
+        Write-Host "No File was selected, Please select a valid path"
+    }
+}
+
+function ScanType {
+    $Scantype = $null
+  if ($combobox_ScanType.SelectedIndex -eq 0 ) {
+    $Scantype = "DHCP Server"
+  }
+  elseif ($combobox_ScanType.SelectedIndex -eq 1){
+    $Scantype = "Domain Controller"
+  }
+  else {
+    Write-Host "No Server option was selected!"
+  }
+  Return $Scantype
+}
+
+## Creating Vars for simple alignment 
+$TextBoxSize = New-Object System.Drawing.Size(240,20)
+
+## Initial Form Creation
+$Form_HealthCheck = New-Object System.Windows.Forms.Form
+    $Form_HealthCheck.text = "83 NOS - Server Health Check"
+    $Form_HealthCheck.size = New-Object System.Drawing.Size(500,500)
+    $Form_HealthCheck.FormBorderStyle = "FixedDialog"
+    $Form_HealthCheck.Topmost = $true
+    $Form_HealthCheck.Maximizebox = $false
+    $Form_HealthCheck.Minimizebox = $true
+    $Form_HealthCheck.ControlBox = $true
+    $Form_HealthCheck.StartPosition = "CenterScreen"
+    $Form_HealthCheck.Font = "Segoe UI"
+    $Form_HealthCheck.BackColor = "ControlDarkDark"
+    $Form_HealthCheck.AcceptButton = $button_Runscan
+    $Form_HealthCheck.CancelButton = $button_Exit
+
+    ## Information Label about the script
+$label_Intro = New-Object System.Windows.Forms.Label
+    $label_Intro.Location = New-Object System.Drawing.Size(10,10)
+    $label_Intro.Size = New-Object System.Drawing.Size(300,35)
+    $label_Intro.TextAlign = "TopLeft"
+    $label_Intro.Text = "To get started please click the button below to import the list of servers"
+        $Form_HealthCheck.Controls.Add($label_Intro)
+
+
+## Creating a button to grab the CSV
+$button_GetCSV = New-Object System.Windows.Forms.Button
+    $button_GetCSV.Location = New-Object System.Drawing.Size(10,75)
+    $button_GetCSV.Size = New-Object System.Drawing.Size(100,50)
+    $button_GetCSV.Text = "Open Server List"
+    $button_GetCSV.Add_Click({OpenFile})
+        $Form_HealthCheck.Controls.Add($button_GetCSV)
+
+## This will show the file path of the selected file
+$textbox_OpenFile = New-Object System.Windows.Forms.TextBox
+    $textbox_OpenFile.Location = New-Object System.Drawing.Size(10,50)
+    $textbox_OpenFile.Size = $TextBoxSize
+        $Form_HealthCheck.Controls.Add($textbox_OpenFile)
+
+## Drop down list to select the server type
+$combobox_ScanType = New-Object System.Windows.Forms.ComboBox
+    $combobox_ScanType.Location = New-Object System.Drawing.Size(10,200)
+    $combobox_ScanType.Size = $TextBoxSize
+    @('DHCP Server','Domain Controller') | ForEach-Object {[void] $combobox_ScanType.Items.Add($_)}
+        $Form_HealthCheck.Controls.Add($combobox_ScanType)
+
+$ProgressBar_ScanProgress = New-Object system.Windows.Forms.ProgressBar
+    $ProgressBar_ScanProgress.text= "Scan Progress"
+    $ProgressBar_ScanProgress.Size = New-Object System.Drawing.Size(375,14)
+    $ProgressBar_ScanProgress.location= New-Object System.Drawing.Point(55,315)
+    $ProgressBar_ScanProgress.BackColor= [System.Drawing.ColorTranslator]::FromHtml("#00fff2")
+        $Form_HealthCheck.Controls.Add($ProgressBar_ScanProgress)
+
+
+
+$button_Runscan = New-Object System.Windows.Forms.Button
+    $button_Runscan.Location = New-Object System.Drawing.Size(10,400)
+    $button_Runscan.Size = New-Object System.Drawing.Size(100,50)
+    $button_Runscan.Text = "Start Scan"
+    $button_Runscan.Add_Click({
+            $Scantype = ScanType
+            [Array]$serverlist = Import-ServerCSV
+            Write-Host "$scantype"
+    })
+        $Form_HealthCheck.Controls.Add($button_Runscan)
+$Form_HealthCheck.Add_Shown({$Form_HealthCheck.Activate()})
+[void] $Form_HealthCheck.ShowDialog()
