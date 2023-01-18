@@ -1,0 +1,30 @@
+
+## This function will write all events to the log located at c:\users\spenc\desktop\SIDlog.txt
+function Write-Log
+{
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]$logtext
+    )
+    "$(get-date -format "yyyy-MM-dd HH:mm:ss"): $($logtext)" | out-file "c:\users\spenc\desktop\SIDlog.txt" -Append
+}
+
+## Getting export dates for ease of use later
+$FolderDate = Get-Date
+$Month = Get-Date -UFormat %b
+
+## Testing the path to see if the specified year already exsist, if not we will create a new folder
+$Checkifyearexsists = Test-Path -Path ...\"Active Directory SIDs $($FolderDate.year)"
+if ($Checkifyearexsists -eq $false) {
+    New-Item -Path .....\"Active Directory SIDs $($FolderDate.year)" -ItemType Directory
+    Write-Log "Folder for $($FolderDate.Year) was not found. Creating...."
+}
+else{
+    Write-Log "Folder found starting SID scan..."
+}
+
+## This will query all AD users, grabbing the SID and sAmAccountName. Then exporting to a .CSV file
+Write-Log "SID Scan for $($Month) $($FolderDate.Year) Started"
+Get-ADUser -Filter * -Properties SID, sAmAccountName | Select-Object SID, sAmAccountName | Export-Csv -Path ".\Active Directory SIDs $($FolderDate.year)\AD-SIDExport $($Month) $($FolderDate.Year).csv"
+Write-Log "SID Scan for $($Month) $($FolderDate.Year) Complete"
