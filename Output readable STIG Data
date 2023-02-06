@@ -1,0 +1,159 @@
+
+<#
+.SYNOPSIS
+    DISA Stig Checklist Parsing tool
+.DESCRIPTION
+    This tool will provide the ability for easy output of STIG checklist information.
+.NOTES
+                ######################################
+                #   Created by A1C Heath, Spencer A  #
+                #    For 83 Network Operation Sq     #
+                #   Contact spencer.heath@us.af.mil  #
+                ######################################
+#>
+
+
+
+
+## Here we are setting up basic vars for use LATER
+Clear-Host 
+$date = Get-Date -Format dd-MMM-yyyy
+$desktoppath = [Environment]::GetFolderPath('Desktop')
+[int]$totalcklcount = 0
+$searchbase = @()
+$cat3opencount = New-Object -TypeName System.Collections.ArrayList
+$cat2opencount = New-Object -TypeName System.Collections.ArrayList
+$cat1opencount = New-Object -TypeName System.Collections.ArrayList
+$TotalVulnsProcessed = New-Object -TypeName System.Collections.ArrayList
+$TotalCklProcessed = New-Object -TypeName System.Collections.ArrayList
+$IDgen = '123456789abcdefghijklmnopqrstuvwxyz'.ToCharArray()
+$IdFinal = ($IDgen | Get-Random -count 4) -join ''
+
+## To make a more "advanced" system we will allow the user to select only the data they want
+## Theoretically, the script SHOULD only grab the finding type inside of the array....I hope
+$menucheck = $null
+Write-Host "
+1. All (Open, NaF, NA, NR)
+2. All excluding NA, NR
+3. Only Open
+4. Only NR
+5. Only NA
+6. only NaF
+" -ForegroundColor Yellow
+while (1..6 -notcontains $menucheck) {
+    $menucheck = Read-Host "Please select what data you would like to extract"
+}
+if ($menucheck -eq 1) {
+    $searchbase = @("Open", "Not_Reviewed", "Not_Applicable", "NotAFinding")
+}
+elseif ($menucheck -eq 2) {
+    $searchbase = @("Open", "NotAFinding")
+}
+elseif ($menucheck -eq 3) {
+    $searchbase = @("Open")
+}
+elseif ($menucheck -eq 4) {
+    $searchbase = @("Not_Reviewed")
+}
+elseif ($menucheck -eq 5) {
+    $searchbase = @("Not_Applicable")
+}
+elseif ($menucheck -eq 6) {
+    $searchbase = @("NotAFinding")
+}
+
+
+
+## This will create a temp file to store all of the information
+## It is stored in the public dir so that the user cannot access it until it is complete
+## It will transfer it to the users desktop at the end for easy access
+[string]$tempfilepath = "C:\Users\Public\Documents\StigData $($IdFinal) $($date)\Stig Metrics $($IdFinal) $($date).csv"
+[string]$tempdatapath = "C:\Users\Public\Documents\StigData $($IdFinal) $($date)\Stig data $($IdFinal) $($date).csv" 
+New-Item -ItemType Directory -Name "Stig Data $($IdFinal) $($date)" -Path "C:\Users\Public\Documents" -Force *>$null
+New-Item -ItemType File -Name "Stig Data $($IdFinal) $($date).csv" -Path "C:\Users\Public\Documents\StigData $($IdFinal) $($date)" -Force *>$null
+New-Item -ItemType File -Name "Stig Metrics $($IdFinal) $($date).csv" -Path "C:\Users\Public\Documents\StigData $($IdFinal) $($date)" -Force *>$null
+$testtempfile = Test-Path -Path $tempfilepath
+if (!$testtempfile) {
+    Write-Host "There was an error creating the temp files, please ensure you have the proper permission to access the public documents folder." -ForegroundColor Red
+    break
+}
+else {
+    Write-Host "Temp File Created..."-ForegroundColor Green
+}
+## This will ask for the folder path of the checklist files, until it finds a valid path it will keep asking
+[bool]$testpath = $false
+while (!$testpath) {
+    $cklfolder = Read-Host "Please enter the file path of the .CKL files"
+    $testpath = Test-path $cklfolder
+}
+
+
+## Starting a stop watch to get the run time of the script
+$runtime = [System.Diagnostics.Stopwatch]::startnew()
+$cklFiles = Get-ChildItem -Path $cklFolder | Sort-Object Name
+
+foreach ($ckl in $cklFIles) {
+    $TotalCklProcessed.Add(1) *>$null
+    ## Setting all values blank so we dont output any false information
+    $cklinfo = [PSCustomObject]@{
+        'Server Name' = " "
+        'Ip Address'  = " "
+        'Stigs Ran'   = " "
+        'VulnNum'     = " "
+        'Catlvl'      = " "
+        'Status'      = " "
+    }
+
+    $totalcklcount++
+    $tmpcklload = New-Object -TypeName System.Xml.XmlDocument
+    $tmpcklload = [xml]''
+    $tmpcklload.Load($ckl)
+    $cklinfo = [PSCustomObject]@{
+        'Server Name' = $tmpcklload.CHECKLIST.ASSET.HOST_NAME
+        'Server Ip'   = $tmpcklload.CHECKLIST.ASSET.HOST_IP
+        'Stigs Ran'   = $tmpcklload.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA[3].SID_DATA
+        'VulnNum'     = "========================="
+        'Catlvl'      = "========================="
+        'Status'      = "========================="
+    }
+
+    $cklinfo | Export-Csv $tempfilepath -NoTypeInformation -Append -Force
+    foreach ($VULN in $tmpcklload.CHECKLIST.STIGS.iSTIG.VULN) {
+        $TotalVulnsProcessed.Add(1) *>$null
+        ## 95% of the time we only care about opens so we are only going to grab
+        if ($VULN.STATUS -eq "Open" -and $VULN.STIG_DATA[1].ATTRIBUTE_DATA -eq "low") {
+            $cat3opencount.Add(1) *>$null
+        }
+        elseif ($VULN.STATUS -eq "Open" -and $VULN.STIG_DATA[1].ATTRIBUTE_DATA -eq "medium") {
+            $cat2opencount.Add(1) *>$null
+        }
+        elseif ($VULN.STATUS -eq "Open" -and $VULN.STIG_DATA[1].ATTRIBUTE_DATA -eq "high") {
+            $cat1opencount.Add(1) *>$null
+        }
+
+        if ($VULN.STATUS -notin $searchbase) {
+            continue
+        }
+        else {
+            $Vulninfo = [PSCustomObject]@{
+                Status  = $VULN.STATUS #Finding Status
+                VulnNum = $VULN.STIG_DATA[0].ATTRIBUTE_DATA #Vuln ID
+                Catlvl  = $VULN.STIG_DATA[1].ATTRIBUTE_DATA #Catlvl
+            }
+            $Vulninfo | Export-Csv $tempfilepath -NoTypeInformation -Append -Force
+        }
+    }
+}
+[int]$totalvuln = $TotalVulnsProcessed.Count
+[int]$catadd = $cat3opencount.Count + $cat2opencount.Count + $cat1opencount.Count
+$Openpercent = $catadd / $totalvuln
+$Openpercent = $Openpercent * 100
+$TotalNumOut = [PSCustomObject]@{
+    'Total Vulns'        = $TotalVulnsProcessed.Count
+    'Total Checks'       = $TotalCklProcessed.Count
+    'Total Cat I Open'   = $cat1opencount.Count
+    'Total Cat II Open'  = $cat2opencount.Count
+    'Total Cat III Open' = $cat3opencount.Count
+    'Percent Open'       = "$($Openpercent)%"
+}
+$TotalNumOut | Export-Csv $tempdatapath -NoTypeInformation -Append -Force
