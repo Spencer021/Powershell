@@ -1,33 +1,35 @@
 $file = Get-ChildItem -Path 'C:\Users\spenc\OneDrive\Desktop\New folder\CCC TARs.xlsx'
-$excel = new-object -com Excel.Application -Property @{Visible = $false}
+$excel = new-object -com Excel.Application -Property @{Visible = $false }
 $workbook = $excel.Workbooks.Open($file)
 
-if ($file.Name -contains "CCC") {
+if ($file.Name -match "CCC") {
     $ProcessingTar = "MCCC", "ICCC"
 }
-elseif ($file.Name -contains "DSO") {
+elseif ($file.Name -match "DSO") {
     $ProcessingTar = "MDSO", "IDSO"
 }
-elseif ($file.Name -contains "NMO") {
+elseif ($file.Name -match "NMO") {
     $ProcessingTar = "MNMO", "INMO"
 }
 
 
 
-foreach ($xsheet in $workbook.Sheets){
-if ($xsheet.cell.Item(7, 9) -notin $ProcessingTar ) {
-    continue
-    Write-Host "$($xsheet.Name) $($xsheet.cell.Item(7, 9))"
-}
-else {
-    Write-Host "$($xsheet.Name) $($xsheet.cell.Item(7, 9))"
+foreach ($xsheet in $workbook.Sheets) {
+    if ($($xsheet.cells.Item(7, 9).Value2) -notin $ProcessingTar ) {
+        Write-Host "$($xsheet.Name) $($xsheet.cells.Item(7, 9).Value2)"
+        continue
+    }
+    else {
+        Write-Host "$($xsheet.Name) $($xsheet.cells.Item(7, 9).Value2)" -ForegroundColor Red
+        [array]$tarsdone += $xsheet.name
+    }
 }
 $DataGathered = [PSCustomObject]@{
     Crewposs = Value
 }
 }
-$excel.Visible=$true 
-Get-Process -Name EXCEL | Where-Object MainWindowHandle -EQ $excel.Hwnd | Stop-Process -PassThru
+$excel.Visible = $true 
+Get-Process -Name EXCEL | Where-Object MainWindowHandle -EQ $excel.Hwnd | Stop-Process
 $excel.Quit()
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
 Remove-Variable excel, workbook
