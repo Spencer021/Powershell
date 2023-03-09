@@ -1,0 +1,33 @@
+$file = Get-ChildItem -Path 'C:\Users\spenc\OneDrive\Desktop\New folder\CCC TARs.xlsx'
+$excel = new-object -com Excel.Application -Property @{Visible = $false}
+$workbook = $excel.Workbooks.Open($file)
+
+if ($file.Name -contains "CCC") {
+    $ProcessingTar = "MCCC", "ICCC"
+}
+elseif ($file.Name -contains "DSO") {
+    $ProcessingTar = "MDSO", "IDSO"
+}
+elseif ($file.Name -contains "NMO") {
+    $ProcessingTar = "MNMO", "INMO"
+}
+
+
+
+foreach ($xsheet in $workbook.Sheets){
+if ($xsheet.cell.Item(7, 9) -notin $ProcessingTar ) {
+    continue
+    Write-Host "$($xsheet.Name) $($xsheet.cell.Item(7, 9))"
+}
+else {
+    Write-Host "$($xsheet.Name) $($xsheet.cell.Item(7, 9))"
+}
+$DataGathered = [PSCustomObject]@{
+    Crewposs = Value
+}
+}
+$excel.Visible=$true 
+Get-Process -Name EXCEL | Where-Object MainWindowHandle -EQ $excel.Hwnd | Stop-Process -PassThru
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel)
+Remove-Variable excel, workbook
